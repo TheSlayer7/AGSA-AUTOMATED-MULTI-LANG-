@@ -5,6 +5,7 @@ Defines DRF serializers for request/response data validation and transformation.
 """
 
 from rest_framework import serializers
+from .models import UserRegistration
 
 
 class AuthenticateRequestSerializer(serializers.Serializer):
@@ -118,3 +119,64 @@ class ErrorResponseSerializer(serializers.Serializer):
     message = serializers.CharField()
     error_code = serializers.CharField(required=False)
     details = serializers.DictField(required=False)
+
+
+# Sign-up flow serializers
+class SignUpRequestSerializer(serializers.Serializer):
+    """Serializer for user sign-up request with KYC data."""
+    phone_number = serializers.CharField(
+        max_length=13, 
+        min_length=13,
+        help_text="Phone number in format +91xxxxxxxxxx"
+    )
+    name = serializers.CharField(max_length=200)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    date_of_birth = serializers.DateField()
+    gender = serializers.ChoiceField(choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other')])
+    address = serializers.CharField()
+    
+    def validate_phone_number(self, value):
+        """Validate phone number format."""
+        if not value.startswith('+91'):
+            raise serializers.ValidationError("Phone number must start with +91")
+        if not value[3:].isdigit():
+            raise serializers.ValidationError("Phone number must contain only digits after +91")
+        return value
+
+
+class SignUpResponseSerializer(serializers.Serializer):
+    """Serializer for sign-up response."""
+    request_id = serializers.CharField()
+    message = serializers.CharField()
+    user_id = serializers.CharField()
+
+
+class VerifySignUpOTPRequestSerializer(serializers.Serializer):
+    """Serializer for sign-up OTP verification request."""
+    request_id = serializers.CharField()
+    otp_code = serializers.CharField(max_length=6, min_length=6)
+
+
+class VerifySignUpOTPResponseSerializer(serializers.Serializer):
+    """Serializer for sign-up OTP verification response."""
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    session_token = serializers.CharField()
+    user_id = serializers.CharField()
+
+
+class CompleteKYCRequestSerializer(serializers.Serializer):
+    """Serializer for KYC completion request."""
+    name = serializers.CharField(max_length=200)
+    dob = serializers.DateField()
+    gender = serializers.ChoiceField(choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other')])
+    address = serializers.CharField()
+    email = serializers.EmailField(required=False, allow_blank=True)
+    aadhaar_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
+
+
+class CompleteKYCResponseSerializer(serializers.Serializer):
+    """Serializer for KYC completion response."""
+    status = serializers.CharField()
+    message = serializers.CharField()
+    user_profile = UserProfileSerializer()
