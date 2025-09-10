@@ -37,6 +37,29 @@ Route | File | Purpose
 
 Router is configured in `src/App.tsx` via `react-router-dom`.
 
+## 3.1. Backend Testing Structure
+The backend includes a comprehensive testing framework located in `backend/tests/`:
+
+Test File | Purpose
+----------|--------
+`tests/simple_test.py` | Basic API connectivity and endpoint testing
+`tests/test_api.py` | Comprehensive API testing with mock data
+`tests/test_dynamic_api.py` | Advanced testing with database integration
+`tests/populate_sample_data.py` | Database population with sample users and documents
+
+**Running Tests:**
+```bash
+cd backend
+# Populate sample data
+uv run python tests/populate_sample_data.py
+
+# Run basic API tests
+uv run python tests/simple_test.py
+
+# Start Django server for testing
+uv run python manage.py runserver
+```
+
 ## 4. Key Files & Responsibilities
 Category | File | Notes
 ---------|------|------
