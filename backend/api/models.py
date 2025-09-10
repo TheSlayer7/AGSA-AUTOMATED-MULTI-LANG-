@@ -8,7 +8,51 @@ replacing the hardcoded mock data with dynamic, manageable content.
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
+from django.utils import timezone
 import uuid
+from datetime import datetime, timedelta
+
+
+class UserRegistration(models.Model):
+    """Model to track user registration process and OTP verification."""
+    
+    phone_validator = RegexValidator(
+        regex=r'^\+91\d{10}$',
+        message="Phone number must be in format +91xxxxxxxxxx"
+    )
+    phone_number = models.CharField(max_length=13, validators=[phone_validator], unique=True)
+    request_id = models.CharField(max_length=100, blank=True, null=True)  # For tracking OTP requests
+    otp = models.CharField(max_length=6)
+    otp_created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+    attempts = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # KYC Information
+    name = models.CharField(max_length=200, blank=True)
+    dob = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=1, choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other')], blank=True)
+    address = models.TextField(blank=True)
+    email = models.EmailField(blank=True, null=True)
+    aadhaar_number = models.CharField(max_length=20, blank=True, help_text="Masked Aadhaar number")
+    
+    kyc_completed = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "User Registration"
+        verbose_name_plural = "User Registrations"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.phone_number} - {'Verified' if self.is_verified else 'Pending'}"
+    
+    def is_otp_valid(self):
+        """Check if OTP is still valid (within 10 minutes)."""
+        return (timezone.now() - self.otp_created_at).total_seconds() < 600
+    
+    def can_resend_otp(self):
+        """Check if OTP can be resent (after 1 minute)."""
+        return (datetime.now() - self.otp_created_at.replace(tzinfo=None)).total_seconds() > 60
 
 
 class UserProfile(models.Model):
@@ -104,7 +148,11 @@ class Document(models.Model):
     def file_size(self):
         """Get file size in bytes."""
         if self.document_file:
-            return self.document_file.size
+            try:
+                return self.document_file.size
+            except (FileNotFoundError, OSError):
+                # File doesn't exist on disk, return 0
+                return 0
         return 0
     
     @property
