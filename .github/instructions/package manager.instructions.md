@@ -7,3 +7,4 @@ make sure to use uv as package manager
 # # Project Setup Instructions
 uv run manage.py runserver
 uv add {package_name}
+EVEN FOR RUNING TESTS LIKE python tests/test_complete_flow.py USE uv run tests/test_complete_flow.py
