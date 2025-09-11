@@ -1,4 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.safe_logging import mask_phone_number, mask_name, mask_address
+
 """
 Test script for dynamic DigiLocker API with database-backed documents.
 
@@ -95,9 +102,9 @@ def test_api():
         if response.status_code == 200:
             user_data = response.json()
             print(f"✅ User info retrieved successfully")
-            print(f"   Name: {user_data['name']}")
-            print(f"   Phone: {user_data['phone_number']}")
-            print(f"   Address: {user_data['address'][:30]}...")
+            print(f"   Name: {mask_name(user_data['name'])}")
+            print(f"   Phone: {mask_phone_number(user_data['phone_number'])}")
+            print(f"   Address: {mask_address(user_data['address'])}")
         else:
             print(f"❌ User info retrieval failed: {response.status_code}")
             print(f"   Response: {response.text}")

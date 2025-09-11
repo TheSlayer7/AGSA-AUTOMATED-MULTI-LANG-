@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.safe_logging import mask_phone_number, mask_email, mask_name
 """
 Frontend-Backend Integration Test
 Tests the complete flow from phone registration to document management
@@ -76,9 +82,9 @@ class FrontendBackendTest:
         if response.status_code == 200:
             result = response.json()
             print(f"✅ Profile retrieval successful")
-            print(f"   Name: {result['name']}")
-            print(f"   Phone: {result['phone_number']}")
-            print(f"   Email: {result.get('email', 'Not set')}")
+            print(f"   Name: {mask_name(result['name'])}")
+            print(f"   Phone: {mask_phone_number(result['phone_number'])}")
+            print(f"   Email: {mask_email(result.get('email', 'Not set'))}")
             return True
         else:
             print(f"❌ Profile retrieval failed: {response.status_code} - {response.text}")

@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any
 from django.db import models
+from utils.secure_error_handler import SecureErrorHandler, handle_external_service_error
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -386,13 +387,10 @@ class SendMessageView(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
             
         except Exception as e:
-            logger.error(f"Error sending message: {e}")
-            import traceback
-            traceback.print_exc()
-            return Response(
-                {'error': f'Failed to send message: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return SecureErrorHandler.handle_exception(
+                e, 'server_error',
+                context={'operation': 'chat_send_message', 'session_id': session_id}
+            )[0]
     
     def _create_new_session(self, user_profile):
         """Create a new chat session."""

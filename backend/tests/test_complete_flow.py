@@ -1,4 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.safe_logging import mask_phone_number, mask_email, mask_name
+
 """
 Comprehensive test for the fixed DigiLocker API endpoints.
 """
@@ -86,9 +93,9 @@ def test_full_api_flow():
         if response.status_code == 200:
             user_data = response.json()
             print(f"✅ User profile retrieved successfully")
-            print(f"   Name: {user_data['name']}")
-            print(f"   Phone: {user_data['phone_number']}")
-            print(f"   Email: {user_data.get('email', 'Not provided')}")
+            print(f"   Name: {mask_name(user_data['name'])}")
+            print(f"   Phone: {mask_phone_number(user_data['phone_number'])}")
+            print(f"   Email: {mask_email(user_data.get('email', 'Not provided'))}")
         else:
             print(f"❌ User profile retrieval failed: {response.status_code}")
             print(f"   Response: {response.text}")

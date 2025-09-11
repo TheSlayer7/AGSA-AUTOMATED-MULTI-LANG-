@@ -1,4 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.safe_logging import mask_phone_number
+
 """
 Script to populate the database with sample DigiLocker data.
 
@@ -127,7 +134,7 @@ def create_sample_data():
                 'expires_at': timezone.now() + timedelta(minutes=10)
             }
         )
-        print(f"  {'Created' if created else 'Found'} OTP for: {user.phone_number}")
+        print(f"  {'Created' if created else 'Found'} OTP for: {mask_phone_number(user.phone_number)}")
     
     print("\n✅ Sample data created successfully!")
     print(f"📊 Created {len(created_types)} document types")

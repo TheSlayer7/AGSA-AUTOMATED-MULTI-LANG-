@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.safe_logging import mask_phone_number, mask_email, mask_aadhaar, mask_name, mask_address
 """
 Complete User Journey Test
 Demonstrates the full user experience from authentication to document management
@@ -36,7 +42,7 @@ def demonstrate_user_journey():
     if otp_response.status_code == 200:
         otp_data = otp_response.json()
         request_id = otp_data.get("request_id") or otp_data.get("data", {}).get("request_id")
-        print(f"   ✅ OTP sent successfully to {phone_number}")
+        print(f"   ✅ OTP sent successfully to {mask_phone_number(phone_number)}")
         print(f"   📨 Mock SMS: 'Your AGSA login OTP is 123456. Valid for 10 minutes.'")
         print(f"   🔑 Request ID: {request_id}")
     else:
@@ -83,12 +89,12 @@ def demonstrate_user_journey():
         user = profile_data.get("data", profile_data)
         
         print("   ✅ Profile loaded successfully:")
-        print(f"   📛 Name: {user['name']}")
-        print(f"   📱 Phone: {user['phone_number']}")
-        print(f"   📧 Email: {user.get('email', 'Not provided')}")
+        print(f"   📛 Name: {mask_name(user['name'])}")
+        print(f"   📱 Phone: {mask_phone_number(user['phone_number'])}")
+        print(f"   📧 Email: {mask_email(user.get('email', 'Not provided'))}")
         print(f"   🎂 Date of Birth: {user['dob']}")
-        print(f"   🏠 Address: {user['address']}")
-        print(f"   🆔 Aadhaar: {user.get('aadhaar_number', 'Not provided')}")
+        print(f"   🏠 Address: {mask_address(user['address'])}")
+        print(f"   🆔 Aadhaar: {mask_aadhaar(user.get('aadhaar_number', 'Not provided'))}")
     else:
         print(f"   ❌ Profile loading failed: {profile_response.text}")
         return
