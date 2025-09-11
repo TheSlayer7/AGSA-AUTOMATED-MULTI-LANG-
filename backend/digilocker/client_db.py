@@ -224,43 +224,6 @@ class DigiLockerClient:
             user_id=str(user_profile.user_id)
         )
     
-    def create_session(self, user_id: str, phone_number: str) -> str:
-        """
-        Create a new session for a user.
-        
-        Args:
-            user_id: User profile ID
-            phone_number: User's phone number
-            
-        Returns:
-            Session token string
-            
-        Raises:
-            AuthenticationError: If user not found
-        """
-        UserProfile, Document, Session, OTPRequest = self._get_django_models()
-        
-        # Get user profile
-        try:
-            user_profile = UserProfile.objects.get(user_id=user_id, phone_number=phone_number)
-        except ObjectDoesNotExist:
-            raise AuthenticationError("User not found")
-        
-        # Create session
-        session_token = self._generate_session_token()
-        session = Session.objects.create(
-            user_profile=user_profile,
-            session_id=session_token,
-            is_authenticated=True,
-            expires_at=timezone.now() + timedelta(hours=24)
-        )
-        
-        # Store session info
-        self.session_token = session_token
-        self.authenticated_user = user_profile
-        
-        return session_token
-    
     def get_user_info(self, session_token: str) -> KYCInfo:
         """
         Get user KYC information.
