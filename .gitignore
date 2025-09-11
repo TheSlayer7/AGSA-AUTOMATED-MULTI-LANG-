@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 backend/updated_data.csv
 *.csv
+backend/documents

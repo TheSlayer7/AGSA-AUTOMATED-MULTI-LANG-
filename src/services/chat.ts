@@ -99,11 +99,39 @@ class ChatService {
    * Send a message and get AI response
    */
   async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
-    const response = await apiClient.post<SendMessageResponse>(
-      API_CONFIG.ENDPOINTS.CHAT.SEND,
-      request
-    );
-    return response;
+    const startTime = performance.now();
+    const timestamp = new Date().toISOString();
+    
+    console.group('[CHAT_FRONTEND] ===== SENDING MESSAGE =====');
+    console.log('[CHAT_FRONTEND] Request started at:', timestamp);
+    console.log('[CHAT_FRONTEND] Request data:', request);
+    
+    try {
+      const response = await apiClient.post<SendMessageResponse>(
+        API_CONFIG.ENDPOINTS.CHAT.SEND,
+        request
+      );
+      
+      const duration = performance.now() - startTime;
+      const responseTimestamp = new Date().toISOString();
+      
+      console.log('[CHAT_FRONTEND] Response received at:', responseTimestamp);
+      console.log('[CHAT_FRONTEND] TOTAL FRONTEND TIME:', `${duration.toFixed(2)}ms`);
+      console.log('[CHAT_FRONTEND] Response data:', response);
+      console.groupEnd();
+      
+      return response;
+    } catch (error) {
+      const duration = performance.now() - startTime;
+      const errorTimestamp = new Date().toISOString();
+      
+      console.error('[CHAT_FRONTEND] Error occurred at:', errorTimestamp);
+      console.error('[CHAT_FRONTEND] ERROR AFTER:', `${duration.toFixed(2)}ms`);
+      console.error('[CHAT_FRONTEND] Error details:', error);
+      console.groupEnd();
+      
+      throw error;
+    }
   }
 
   /**

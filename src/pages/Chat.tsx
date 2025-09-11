@@ -161,6 +161,53 @@ const Chat = () => {
     }
   };
 
+  const exportChat = () => {
+    try {
+      // Create chat content
+      const chatContent = messages.map(message => {
+        const timestamp = message.timestamp.toLocaleString();
+        const sender = message.sender === 'user' ? 'You' : 'AGSA Assistant';
+        return `[${timestamp}] ${sender}: ${message.content}`;
+      }).join('\n\n');
+
+      // Create the full export content
+      const exportContent = `AGSA Chat Export
+Generated on: ${new Date().toLocaleString()}
+Session ID: ${currentSessionId}
+
+==================================================
+
+${chatContent}
+
+==================================================
+End of Chat Export`;
+
+      // Create and download the file
+      const blob = new Blob([exportContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `agsa-chat-${new Date().toISOString().split('T')[0]}-${Date.now()}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Chat Exported",
+        description: "Your chat history has been downloaded successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Failed to export chat:", error);
+      toast({
+        title: "Export Failed",
+        description: "Unable to export chat. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const addMessage = useCallback((content: string, sender: "user" | "assistant" | "system", type: "text" | "status" | "summary" | "system" = "text", isAIGenerated: boolean = false) => {
     console.log('💬 addMessage called:', { content: content.substring(0, 50) + '...', sender, type, isAIGenerated });
     const newMessage: Message = {
@@ -182,31 +229,47 @@ const Chat = () => {
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    console.log('📤 handleSubmit triggered');
+    const startTime = performance.now();
+    const timestamp = new Date().toISOString();
+    
+    console.group('[CHAT_UI] ===== USER MESSAGE FLOW =====');
+    console.log('[CHAT_UI] User action started at:', timestamp);
+    console.log('[CHAT_UI] Submit triggered');
+    
     e.preventDefault();
     if (!inputValue.trim() || isTyping) {
-      console.log('❌ Submit blocked:', { inputValue: inputValue.trim(), isTyping });
+      console.log('[CHAT_UI] Submit blocked:', { inputValue: inputValue.trim(), isTyping });
+      console.groupEnd();
       return;
     }
 
     const userMessage = inputValue;
-    console.log('💬 User message:', userMessage);
+    console.log('[CHAT_UI] User message:', userMessage);
     setInputValue("");
-    console.log('🧹 Input cleared');
+    console.log('[CHAT_UI] Input cleared');
     
     // Add user message immediately
+    const messageAddStart = performance.now();
     addMessage(userMessage, "user");
-    console.log('✅ User message added to chat');
+    const messageAddDuration = performance.now() - messageAddStart;
+    console.log('[CHAT_UI] User message added to chat:', `${messageAddDuration.toFixed(2)}ms`);
+    
     setIsTyping(true);
-    console.log('⏳ Set typing to true');
+    console.log('[CHAT_UI] Set typing indicator to true');
     
     try {
+      const apiCallStart = performance.now();
+      console.log('[CHAT_UI] Starting API call...');
+      
       // Send message to AI service
       const response = await chatService.sendMessage({
         session_id: currentSessionId,
         message: userMessage,
         message_type: "text"
       });
+      
+      const apiCallDuration = performance.now() - apiCallStart;
+      console.log('[CHAT_UI] API call completed:', `${apiCallDuration.toFixed(2)}ms`);
       
       // Check if response has AI indicators (confidence score, intent category, etc.)
       const isFromAI = response.assistant_message.confidence_score !== null && 
@@ -217,13 +280,23 @@ const Chat = () => {
       // Check if LLM is unavailable
       const isLLMUnavailable = response.assistant_message.intent_category === "llm_unavailable";
       
+      console.log('[CHAT_UI] Response analysis:', {
+        isFromAI,
+        isLLMUnavailable,
+        confidence: response.assistant_message.confidence_score,
+        intent: response.assistant_message.intent_category
+      });
+      
       // Add AI response with appropriate type
+      const responseAddStart = performance.now();
       addMessage(
         response.assistant_message.content, 
         "assistant", 
         isLLMUnavailable ? "status" : response.assistant_message.message_type,
         isFromAI
       );
+      const responseAddDuration = performance.now() - responseAddStart;
+      console.log('[CHAT_UI] AI message added to chat:', `${responseAddDuration.toFixed(2)}ms`);
       
       // Show toast notification if LLM is unavailable
       if (isLLMUnavailable) {
@@ -235,7 +308,9 @@ const Chat = () => {
       }
       
     } catch (error) {
-      console.error("Failed to send message:", error);
+      const errorDuration = performance.now() - startTime;
+      console.error('[CHAT_UI] Error after:', `${errorDuration.toFixed(2)}ms`);
+      console.error('[CHAT_UI] Error details:', error);
       
       // Show service unavailable message instead of fake response
       addMessage(
@@ -252,6 +327,11 @@ const Chat = () => {
       });
     } finally {
       setIsTyping(false);
+      const totalDuration = performance.now() - startTime;
+      console.log('[CHAT_UI] Set typing indicator to false');
+      console.log('[CHAT_UI] TOTAL UI FLOW TIME:', `${totalDuration.toFixed(2)}ms`);
+      console.log('[CHAT_UI] Completed at:', new Date().toISOString());
+      console.groupEnd();
     }
   }, [currentSessionId, addMessage, toast, inputValue, isTyping]);
 
@@ -295,7 +375,7 @@ const Chat = () => {
           </div>
         </div>
 
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={exportChat}>
           <FileText className="w-4 h-4 mr-1" />
           Export Chat
         </Button>
