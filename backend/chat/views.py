@@ -257,23 +257,35 @@ class SendMessageView(APIView):
                     from schemes.models import Scheme, SchemeCategory
                     
                     # Query database for matching schemes
-                    schemes_queryset = Scheme.objects.select_related('category').filter(is_active=True)
+                    schemes_queryset = Scheme.objects.filter(is_active=True)
                     
                     # Filter by category if specified
                     if scheme_category:
-                        try:
-                            category_obj = SchemeCategory.objects.get(name__icontains=scheme_category)
-                            schemes_queryset = schemes_queryset.filter(category=category_obj)
-                        except SchemeCategory.DoesNotExist:
-                            logger.warning(f"[CHAT_FLOW] Category '{scheme_category}' not found in database")
+                        # Map common terms to scheme categories
+                        category_mapping = {
+                            'healthcare': SchemeCategory.HEALTHCARE,
+                            'health': SchemeCategory.HEALTHCARE,
+                            'medical': SchemeCategory.HEALTHCARE,
+                            'education': SchemeCategory.EDUCATION,
+                            'agriculture': SchemeCategory.AGRICULTURE,
+                            'employment': SchemeCategory.EMPLOYMENT,
+                            'housing': SchemeCategory.HOUSING,
+                            'financial': SchemeCategory.FINANCIAL_INCLUSION,
+                        }
+                        
+                        mapped_category = category_mapping.get(scheme_category.lower())
+                        if mapped_category:
+                            schemes_queryset = schemes_queryset.filter(scheme_category=mapped_category)
+                        else:
+                            logger.warning(f"[CHAT_FLOW] Category '{scheme_category}' not mapped to any scheme category")
                     
                     # Filter by keywords if specified
                     if keywords:
                         for keyword in keywords:
                             schemes_queryset = schemes_queryset.filter(
-                                models.Q(name__icontains=keyword) |
-                                models.Q(description__icontains=keyword) |
-                                models.Q(eligibility_criteria__icontains=keyword)
+                                models.Q(scheme_name__icontains=keyword) |
+                                models.Q(details__icontains=keyword) |
+                                models.Q(eligibility__icontains=keyword)
                             )
                     
                     # Get schemes with limit
@@ -286,11 +298,11 @@ class SendMessageView(APIView):
                     if schemes:
                         scheme_list = []
                         for scheme in schemes:
-                            scheme_list.append(f"• {scheme.name}")
-                            if scheme.description:
-                                scheme_list.append(f"  {scheme.description[:100]}...")
-                            if scheme.benefit_amount:
-                                scheme_list.append(f"  Benefit: ₹{scheme.benefit_amount}")
+                            scheme_list.append(f"• {scheme.scheme_name}")
+                            if scheme.details:
+                                scheme_list.append(f"  {scheme.details[:100]}...")
+                            if scheme.benefits:
+                                scheme_list.append(f"  Benefits: {scheme.benefits[:100]}...")
                             scheme_list.append("")  # Empty line for spacing
                         
                         ai_response_content = f"I found {len(schemes)} scheme(s) for you:\n\n" + "\n".join(scheme_list)
