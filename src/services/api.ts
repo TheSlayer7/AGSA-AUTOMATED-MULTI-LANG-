@@ -76,6 +76,10 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    const startTime = performance.now();
+    const timestamp = new Date().toISOString();
+    
+    console.log(`[API_CLIENT] ${options.method || 'GET'} ${endpoint} - Started at: ${timestamp}`);
     
     const defaultHeaders: HeadersInit = {
       'Content-Type': 'application/json',
@@ -90,20 +94,42 @@ class ApiClient {
       headers: {
         ...defaultHeaders,
         ...options.headers,
+        'Connection': 'keep-alive',  // Reuse connections for speed
+        'Keep-Alive': 'timeout=5, max=100',
       },
+      // Enable HTTP/2 and connection reuse
+      keepalive: true,
     };
 
     try {
       const response = await fetch(url, config);
+      const networkDuration = performance.now() - startTime;
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        const totalDuration = performance.now() - startTime;
+        
+        console.error(`[API_CLIENT] ${options.method || 'GET'} ${endpoint} - ERROR after ${totalDuration.toFixed(2)}ms`);
+        console.error('[API_CLIENT] Network time:', `${networkDuration.toFixed(2)}ms`);
+        console.error('[API_CLIENT] Error data:', errorData);
         throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
       }
 
+      const parseStartTime = performance.now();
       const data = await response.json();
+      const parseDuration = performance.now() - parseStartTime;
+      const totalDuration = performance.now() - startTime;
+      
+      console.log(`[API_CLIENT] ${options.method || 'GET'} ${endpoint} - SUCCESS after ${totalDuration.toFixed(2)}ms`);
+      console.log('[API_CLIENT] Network time:', `${networkDuration.toFixed(2)}ms`);
+      console.log('[API_CLIENT] Parse time:', `${parseDuration.toFixed(2)}ms`);
+      
       return data;
     } catch (error) {
+      const totalDuration = performance.now() - startTime;
+      console.error(`[API_CLIENT] ${options.method || 'GET'} ${endpoint} - EXCEPTION after ${totalDuration.toFixed(2)}ms`);
+      console.error('[API_CLIENT] Exception:', error);
+      
       if (error instanceof Error) {
         throw error;
       }
