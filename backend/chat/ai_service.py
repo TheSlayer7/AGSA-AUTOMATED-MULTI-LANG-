@@ -15,6 +15,242 @@ logger = logging.getLogger(__name__)
 
 
 class GeminiChatService:
+    def _fallback_response(self, message: str) -> Dict[str, Any]:
+        """Enhanced fallback when AI service is unavailable."""
+        
+        message_lower = message.lower().strip()
+        
+        # Enhanced pattern matching for common queries
+        if any(keyword in message_lower for keyword in ['hello', 'hi', 'hey', 'start', 'help']):
+            return {
+                "category": "ASK",
+                "intent": "greeting",
+                "confidence": 0.9,
+                "response": """👋 Hello! Welcome to AGSA - Your Government Services Assistant!
+
+I'm here to help you navigate government schemes and services. While our AI service is temporarily unavailable, I can still assist you with:
+
+🏠 **HOUSING SCHEMES**
+• Pradhan Mantri Awas Yojana (PMAY)
+• State Housing Schemes
+
+🌾 **AGRICULTURE SCHEMES** 
+• PM-KISAN Samman Nidhi
+• Pradhan Mantri Fasal Bima Yojana
+
+🏥 **HEALTHCARE SCHEMES**
+• Ayushman Bharat PM-JAY
+• State Health Insurance
+
+💼 **BUSINESS & EMPLOYMENT**
+• Pradhan Mantri Mudra Yojana
+• Skill Development Programs
+
+📚 **EDUCATION SCHEMES**
+• Scholarship Programs
+• Student Loan Schemes
+
+**What would you like assistance with today?**
+Just tell me the category or specific scheme you're interested in!""",
+                "action_plan": ["Browse available schemes", "Check eligibility", "Get application guidance"],
+                "required_documents": [],
+                "eligible_schemes": [],
+                "next_steps": "Tell me which category interests you: Housing, Agriculture, Healthcare, Business, or Education"
+            }
+        
+        # Housing related queries
+        elif any(keyword in message_lower for keyword in ['housing', 'house', 'home', 'awas', 'shelter']):
+            return {
+                "category": "SCHEME_SEARCH",
+                "intent": "housing_scheme_inquiry",
+                "confidence": 0.85,
+                "response": """🏠 **HOUSING SCHEMES AVAILABLE**
+
+**Pradhan Mantri Awas Yojana (PMAY)**
+• Credit Linked Subsidy up to ₹2.67 lakhs
+• For families earning up to ₹18 lakhs annually
+• 20-year loan tenure benefit
+
+**Key Benefits:**
+✅ Interest subsidy on home loans
+✅ Support for first-time home buyers
+✅ Affordable housing for all
+
+**Quick Eligibility Check:**
+• Family income within prescribed limits
+• No pucca house owned by family
+• Must be first-time buyer
+
+**Next Steps:**
+1. Verify your income eligibility
+2. Gather required documents
+3. Apply through PMAY portal
+
+Would you like specific guidance for your situation?""",
+                "action_plan": ["Check income eligibility", "Gather documents", "Apply online"],
+                "required_documents": ["Income Certificate", "Aadhaar Card", "PAN Card", "Bank Details"],
+                "eligible_schemes": ["Pradhan Mantri Awas Yojana"],
+                "next_steps": "Tell me your family's annual income to check PMAY eligibility"
+            }
+        
+        # Agriculture/Farmer queries
+        elif any(keyword in message_lower for keyword in ['agriculture', 'farmer', 'farming', 'kisan', 'crop']):
+            return {
+                "category": "SCHEME_SEARCH", 
+                "intent": "agriculture_scheme_inquiry",
+                "confidence": 0.85,
+                "response": """🌾 **AGRICULTURE SCHEMES AVAILABLE**
+
+**PM-KISAN Samman Nidhi**
+• ₹6,000 per year directly to farmer's account
+• ₹2,000 every 4 months
+• For all landholding farmers
+
+**Pradhan Mantri Fasal Bima Yojana**
+• Crop insurance against natural calamities
+• Premium subsidy provided
+• Quick claim settlement
+
+**Key Benefits:**
+✅ Financial support for farming
+✅ Insurance against crop loss
+✅ Direct benefit transfer
+
+**Eligibility:**
+• Must own cultivable land
+• Aadhaar linked bank account required
+• Valid land records
+
+**Next Steps:**
+1. Register for PM-KISAN
+2. Apply for crop insurance
+3. Link bank account with Aadhaar
+
+Are you a farmer looking for financial support or crop insurance?""",
+                "action_plan": ["Register for PM-KISAN", "Apply for crop insurance", "Link bank with Aadhaar"],
+                "required_documents": ["Land Records", "Aadhaar Card", "Bank Details", "Passport Photo"],
+                "eligible_schemes": ["PM-KISAN", "Pradhan Mantri Fasal Bima Yojana"],
+                "next_steps": "Tell me about your land holding to suggest the best schemes"
+            }
+        
+        # Healthcare queries
+        elif any(keyword in message_lower for keyword in ['health', 'healthcare', 'medical', 'hospital', 'treatment']):
+            return {
+                "category": "SCHEME_SEARCH",
+                "intent": "healthcare_scheme_inquiry", 
+                "confidence": 0.85,
+                "response": """🏥 **HEALTHCARE SCHEMES AVAILABLE**
+
+**Ayushman Bharat PM-JAY**
+• Free treatment up to ₹5 lakhs per family
+• Cashless treatment at empaneled hospitals
+• Covers 50 crore beneficiaries
+
+**State Health Insurance Schemes**
+• Additional coverage in many states
+• Specialized treatments covered
+• Emergency care support
+
+**Key Benefits:**
+✅ Cashless hospitalization
+✅ Pre and post-hospitalization coverage
+✅ Emergency services included
+
+**Eligibility:**
+• Based on SECC 2011 database
+• Check eligibility online
+• Rural and urban poor families
+
+**Next Steps:**
+1. Check your family's eligibility
+2. Generate Ayushman Card
+3. Find nearest empaneled hospital
+
+Do you need health insurance or looking for specific treatment coverage?""",
+                "action_plan": ["Check eligibility online", "Generate Ayushman Card", "Find empaneled hospitals"],
+                "required_documents": ["Aadhaar Card", "Ration Card", "Mobile Number"],
+                "eligible_schemes": ["Ayushman Bharat PM-JAY"],
+                "next_steps": "Tell me your state and district to check your eligibility"
+            }
+        
+        # Business/Employment queries
+        elif any(keyword in message_lower for keyword in ['business', 'loan', 'mudra', 'startup', 'employment', 'job']):
+            return {
+                "category": "SCHEME_SEARCH",
+                "intent": "business_scheme_inquiry",
+                "confidence": 0.85,
+                "response": """💼 **BUSINESS & EMPLOYMENT SCHEMES**
+
+**Pradhan Mantri Mudra Yojana**
+• Loans up to ₹10 lakhs for small businesses
+• Three categories: Shishu, Kishore, Tarun
+• No collateral required
+
+**Startup India**
+• Tax benefits for startups
+• Funding support available
+• Simplified compliance
+
+**Skill Development Programs**
+• Free training in various trades
+• Placement assistance provided
+• Certification upon completion
+
+**Key Benefits:**
+✅ Easy loan approval process
+✅ Lower interest rates
+✅ Government backing
+
+**Next Steps:**
+1. Prepare business plan
+2. Choose loan category
+3. Apply at nearest bank
+
+What type of business are you planning to start?""",
+                "action_plan": ["Prepare business plan", "Choose right loan scheme", "Apply at bank"],
+                "required_documents": ["Business Plan", "Aadhaar Card", "PAN Card", "Bank Statements"],
+                "eligible_schemes": ["Pradhan Mantri Mudra Yojana", "Startup India"],
+                "next_steps": "Tell me about your business idea to suggest the right loan category"
+            }
+        
+        # Default response for unrecognized queries
+        else:
+            return {
+                "category": "ASK",
+                "intent": "general_inquiry",
+                "confidence": 0.7,
+                "response": """📋 **AGSA - Government Services Assistant**
+
+I can help you with various government schemes and services:
+
+**Popular Categories:**
+🏠 **Housing:** PM Awas Yojana, State Housing Schemes
+🌾 **Agriculture:** PM-KISAN, Crop Insurance  
+🏥 **Healthcare:** Ayushman Bharat, State Health Insurance
+💼 **Business:** Mudra Loans, Startup India, MSME Support
+📚 **Education:** Scholarships, Student Loans
+👥 **Social Security:** Pension Schemes, Welfare Programs
+
+**How I can help:**
+✅ Check your eligibility for schemes
+✅ Help gather required documents  
+✅ Guide through application process
+✅ Provide scheme details and benefits
+
+**To get specific help, tell me:**
+• Which category interests you?
+• Any particular scheme you've heard about?
+• What type of assistance do you need?
+
+*Note: Our AI service is temporarily unavailable, but I can still provide comprehensive information about government schemes!*""",
+                "action_plan": ["Choose scheme category", "Check eligibility", "Get application guidance"],
+                "required_documents": [],
+                "eligible_schemes": ["PM Awas Yojana", "PM-KISAN", "Ayushman Bharat", "Mudra Loans"],
+                "next_steps": "Please tell me which government service or scheme category you're most interested in"
+            }
+
+
+class GeminiChatService:
     """Service for handling AI chat interactions with Gemini."""
     
     def __init__(self):
