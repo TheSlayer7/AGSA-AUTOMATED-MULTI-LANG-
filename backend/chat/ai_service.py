@@ -5,11 +5,249 @@ AI service for chat functionality using Google Gemini AI.
 import os
 import json
 import logging
+import time
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 import google.generativeai as genai
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+class GeminiChatService:
+    def _fallback_response(self, message: str) -> Dict[str, Any]:
+        """Enhanced fallback when AI service is unavailable."""
+        
+        message_lower = message.lower().strip()
+        
+        # Enhanced pattern matching for common queries
+        if any(keyword in message_lower for keyword in ['hello', 'hi', 'hey', 'start', 'help']):
+            return {
+                "category": "ASK",
+                "intent": "greeting",
+                "confidence": 0.9,
+                "response": """👋 Hello! Welcome to AGSA - Your Government Services Assistant!
+
+I'm here to help you navigate government schemes and services. While our AI service is temporarily unavailable, I can still assist you with:
+
+🏠 **HOUSING SCHEMES**
+• Pradhan Mantri Awas Yojana (PMAY)
+• State Housing Schemes
+
+🌾 **AGRICULTURE SCHEMES** 
+• PM-KISAN Samman Nidhi
+• Pradhan Mantri Fasal Bima Yojana
+
+🏥 **HEALTHCARE SCHEMES**
+• Ayushman Bharat PM-JAY
+• State Health Insurance
+
+💼 **BUSINESS & EMPLOYMENT**
+• Pradhan Mantri Mudra Yojana
+• Skill Development Programs
+
+📚 **EDUCATION SCHEMES**
+• Scholarship Programs
+• Student Loan Schemes
+
+**What would you like assistance with today?**
+Just tell me the category or specific scheme you're interested in!""",
+                "action_plan": ["Browse available schemes", "Check eligibility", "Get application guidance"],
+                "required_documents": [],
+                "eligible_schemes": [],
+                "next_steps": "Tell me which category interests you: Housing, Agriculture, Healthcare, Business, or Education"
+            }
+        
+        # Housing related queries
+        elif any(keyword in message_lower for keyword in ['housing', 'house', 'home', 'awas', 'shelter']):
+            return {
+                "category": "SCHEME_SEARCH",
+                "intent": "housing_scheme_inquiry",
+                "confidence": 0.85,
+                "response": """🏠 **HOUSING SCHEMES AVAILABLE**
+
+**Pradhan Mantri Awas Yojana (PMAY)**
+• Credit Linked Subsidy up to ₹2.67 lakhs
+• For families earning up to ₹18 lakhs annually
+• 20-year loan tenure benefit
+
+**Key Benefits:**
+✅ Interest subsidy on home loans
+✅ Support for first-time home buyers
+✅ Affordable housing for all
+
+**Quick Eligibility Check:**
+• Family income within prescribed limits
+• No pucca house owned by family
+• Must be first-time buyer
+
+**Next Steps:**
+1. Verify your income eligibility
+2. Gather required documents
+3. Apply through PMAY portal
+
+Would you like specific guidance for your situation?""",
+                "action_plan": ["Check income eligibility", "Gather documents", "Apply online"],
+                "required_documents": ["Income Certificate", "Aadhaar Card", "PAN Card", "Bank Details"],
+                "eligible_schemes": ["Pradhan Mantri Awas Yojana"],
+                "next_steps": "Tell me your family's annual income to check PMAY eligibility"
+            }
+        
+        # Agriculture/Farmer queries
+        elif any(keyword in message_lower for keyword in ['agriculture', 'farmer', 'farming', 'kisan', 'crop']):
+            return {
+                "category": "SCHEME_SEARCH", 
+                "intent": "agriculture_scheme_inquiry",
+                "confidence": 0.85,
+                "response": """🌾 **AGRICULTURE SCHEMES AVAILABLE**
+
+**PM-KISAN Samman Nidhi**
+• ₹6,000 per year directly to farmer's account
+• ₹2,000 every 4 months
+• For all landholding farmers
+
+**Pradhan Mantri Fasal Bima Yojana**
+• Crop insurance against natural calamities
+• Premium subsidy provided
+• Quick claim settlement
+
+**Key Benefits:**
+✅ Financial support for farming
+✅ Insurance against crop loss
+✅ Direct benefit transfer
+
+**Eligibility:**
+• Must own cultivable land
+• Aadhaar linked bank account required
+• Valid land records
+
+**Next Steps:**
+1. Register for PM-KISAN
+2. Apply for crop insurance
+3. Link bank account with Aadhaar
+
+Are you a farmer looking for financial support or crop insurance?""",
+                "action_plan": ["Register for PM-KISAN", "Apply for crop insurance", "Link bank with Aadhaar"],
+                "required_documents": ["Land Records", "Aadhaar Card", "Bank Details", "Passport Photo"],
+                "eligible_schemes": ["PM-KISAN", "Pradhan Mantri Fasal Bima Yojana"],
+                "next_steps": "Tell me about your land holding to suggest the best schemes"
+            }
+        
+        # Healthcare queries
+        elif any(keyword in message_lower for keyword in ['health', 'healthcare', 'medical', 'hospital', 'treatment']):
+            return {
+                "category": "SCHEME_SEARCH",
+                "intent": "healthcare_scheme_inquiry", 
+                "confidence": 0.85,
+                "response": """🏥 **HEALTHCARE SCHEMES AVAILABLE**
+
+**Ayushman Bharat PM-JAY**
+• Free treatment up to ₹5 lakhs per family
+• Cashless treatment at empaneled hospitals
+• Covers 50 crore beneficiaries
+
+**State Health Insurance Schemes**
+• Additional coverage in many states
+• Specialized treatments covered
+• Emergency care support
+
+**Key Benefits:**
+✅ Cashless hospitalization
+✅ Pre and post-hospitalization coverage
+✅ Emergency services included
+
+**Eligibility:**
+• Based on SECC 2011 database
+• Check eligibility online
+• Rural and urban poor families
+
+**Next Steps:**
+1. Check your family's eligibility
+2. Generate Ayushman Card
+3. Find nearest empaneled hospital
+
+Do you need health insurance or looking for specific treatment coverage?""",
+                "action_plan": ["Check eligibility online", "Generate Ayushman Card", "Find empaneled hospitals"],
+                "required_documents": ["Aadhaar Card", "Ration Card", "Mobile Number"],
+                "eligible_schemes": ["Ayushman Bharat PM-JAY"],
+                "next_steps": "Tell me your state and district to check your eligibility"
+            }
+        
+        # Business/Employment queries
+        elif any(keyword in message_lower for keyword in ['business', 'loan', 'mudra', 'startup', 'employment', 'job']):
+            return {
+                "category": "SCHEME_SEARCH",
+                "intent": "business_scheme_inquiry",
+                "confidence": 0.85,
+                "response": """💼 **BUSINESS & EMPLOYMENT SCHEMES**
+
+**Pradhan Mantri Mudra Yojana**
+• Loans up to ₹10 lakhs for small businesses
+• Three categories: Shishu, Kishore, Tarun
+• No collateral required
+
+**Startup India**
+• Tax benefits for startups
+• Funding support available
+• Simplified compliance
+
+**Skill Development Programs**
+• Free training in various trades
+• Placement assistance provided
+• Certification upon completion
+
+**Key Benefits:**
+✅ Easy loan approval process
+✅ Lower interest rates
+✅ Government backing
+
+**Next Steps:**
+1. Prepare business plan
+2. Choose loan category
+3. Apply at nearest bank
+
+What type of business are you planning to start?""",
+                "action_plan": ["Prepare business plan", "Choose right loan scheme", "Apply at bank"],
+                "required_documents": ["Business Plan", "Aadhaar Card", "PAN Card", "Bank Statements"],
+                "eligible_schemes": ["Pradhan Mantri Mudra Yojana", "Startup India"],
+                "next_steps": "Tell me about your business idea to suggest the right loan category"
+            }
+        
+        # Default response for unrecognized queries
+        else:
+            return {
+                "category": "ASK",
+                "intent": "general_inquiry",
+                "confidence": 0.7,
+                "response": """📋 **AGSA - Government Services Assistant**
+
+I can help you with various government schemes and services:
+
+**Popular Categories:**
+🏠 **Housing:** PM Awas Yojana, State Housing Schemes
+🌾 **Agriculture:** PM-KISAN, Crop Insurance  
+🏥 **Healthcare:** Ayushman Bharat, State Health Insurance
+💼 **Business:** Mudra Loans, Startup India, MSME Support
+📚 **Education:** Scholarships, Student Loans
+👥 **Social Security:** Pension Schemes, Welfare Programs
+
+**How I can help:**
+✅ Check your eligibility for schemes
+✅ Help gather required documents  
+✅ Guide through application process
+✅ Provide scheme details and benefits
+
+**To get specific help, tell me:**
+• Which category interests you?
+• Any particular scheme you've heard about?
+• What type of assistance do you need?
+
+*Note: Our AI service is temporarily unavailable, but I can still provide comprehensive information about government schemes!*""",
+                "action_plan": ["Choose scheme category", "Check eligibility", "Get application guidance"],
+                "required_documents": [],
+                "eligible_schemes": ["PM Awas Yojana", "PM-KISAN", "Ayushman Bharat", "Mudra Loans"],
+                "next_steps": "Please tell me which government service or scheme category you're most interested in"
+            }
 
 
 class GeminiChatService:
@@ -19,22 +257,38 @@ class GeminiChatService:
         self.model = None
         self._initialized = False
         
-        # System prompt for AGSA assistant (simplified for faster responses)
-        self.system_prompt = """You are AGSA, an AI assistant for Indian government services. Be concise and helpful.
+        # Enhanced system prompt for intent detection and database integration
+        self.system_prompt = """AGSA AI: Analyze user intent and create action plans.
 
-Response Format - Always return JSON:
+Your job: Identify what the user wants and create a plan to get data from our database.
+
+Categories you can search:
+- "healthcare" (health, medical, hospital, treatment)  
+- "education" (school, college, scholarship, study)
+- "agriculture" (farming, crop, irrigation, farmer)
+- "employment" (job, work, skill, unemployment)
+- "housing" (home, shelter, construction)
+- "financial_inclusion" (loan, bank, finance, money)
+
+JSON response format:
 {
-    "category": "ASK",
-    "intent": "brief intent description",
-    "confidence": 0.8,
-    "response": "your concise response",
-    "action_plan": [],
+    "category": "SCHEME_SEARCH|ASK|ELIGIBILITY",
+    "intent": "brief description",
+    "confidence": 0.9,
+    "response": "I found [X] schemes for you",
+    "action_plan": ["search_schemes"],
+    "search_params": {
+        "scheme_category": "healthcare",
+        "keywords": ["health", "medical"],
+        "limit": 10
+    },
     "required_documents": [],
     "eligible_schemes": [],
-    "next_steps": "next action"
+    "next_steps": "Here are the relevant schemes"
 }
 
-Keep responses short and practical. Focus on the user's immediate need."""
+If user asks for schemes: set category="SCHEME_SEARCH" and include search_params.
+Be concise. Extract search intent from user message."""
         
     def _ensure_initialized(self):
         """Ensure the service is initialized before use."""
@@ -55,21 +309,25 @@ Keep responses short and practical. Focus on the user's immediate need."""
             
             genai.configure(api_key=api_key)
             
-            # Configure for faster responses
+            # Configure for maximum speed
             generation_config = genai.types.GenerationConfig(
-                temperature=0.7,
-                top_p=0.8,
-                top_k=40,
-                max_output_tokens=512,  # Limit tokens for faster response
+                temperature=0.5,  # Lower temperature for faster, more deterministic responses
+                top_p=0.7,        # Reduced for faster token selection
+                top_k=20,         # Reduced from 40 for faster processing
+                max_output_tokens=256,  # Reduced from 512 for faster generation
                 candidate_count=1,
+                stop_sequences=["\n\n\n"],  # Stop early for concise responses
             )
             
+            # Set request timeout (reduced)
+            self.request_timeout = 8  # 8 seconds timeout instead of 10
+            
             self.model = genai.GenerativeModel(
-                'gemini-1.5-flash',
+                'gemini-1.5-flash',  # Using fastest Gemini model
                 generation_config=generation_config,
                 system_instruction=self.system_prompt
             )
-            logger.info("Gemini model initialized successfully")
+            logger.info("Gemini model initialized for maximum speed")
             
         except Exception as e:
             logger.error(f"Failed to initialize Gemini model: {e}")
@@ -88,44 +346,127 @@ Keep responses short and practical. Focus on the user's immediate need."""
         Returns:
             Dict containing analysis and response
         """
-        # Ensure the service is initialized
+        ai_start_time = time.time()
+        ai_timestamp = datetime.now().isoformat()
+        
+        # Debug print
+        print(f"[DEBUG] AI service analyze_user_message called at {ai_timestamp}")
+        print(f"[DEBUG] Message: {message[:50]}...")
+        
+        logger.info(f"[AI_SERVICE] ===== AI ANALYSIS STARTED =====")
+        logger.info(f"[AI_SERVICE] Started at: {ai_timestamp}")
+        logger.info(f"[AI_SERVICE] Message: {message[:100]}...")
+        
+        # Step 1: Ensure service is initialized
+        init_start = time.time()
         self._ensure_initialized()
+        init_duration = (time.time() - init_start) * 1000
+        logger.info(f"[AI_SERVICE] Step 1 - Service initialization: {init_duration:.2f}ms")
         
         if not self.model:
-            logger.warning("Gemini model not available, using fallback")
-            return self._fallback_response(message)
+            logger.warning("[AI_SERVICE] Gemini model not available, using fallback")
+            fallback_result = self._fallback_response(message)
+            total_duration = (time.time() - ai_start_time) * 1000
+            logger.info(f"[AI_SERVICE] FALLBACK RESPONSE TIME: {total_duration:.2f}ms")
+            return fallback_result
         
         try:
-            # Create simplified prompt for faster response
-            prompt = f"""User: "{message}"
-
-Respond with JSON for this government services query. Be brief and helpful."""
-
-            # Log the attempt for debugging
-            logger.info(f"Attempting Gemini API call for message: {message[:50]}...")
+            # Step 2: Prepare ultra-concise prompt
+            prompt_start = time.time()
+            # Minimal prompt for maximum speed
+            prompt = f'"{message[:100]}" - JSON response please.'
+            prompt_duration = (time.time() - prompt_start) * 1000
+            logger.info(f"[AI_SERVICE] Step 2 - Prompt preparation: {prompt_duration:.2f}ms")
             
-            # Generate response
-            response = self.model.generate_content(prompt)
+            # Step 3: Make Gemini API call with timeout
+            api_start = time.time()
+            logger.info(f"[AI_SERVICE] Step 3 - Making Gemini API call...")
+            logger.info(f"[AI_SERVICE] API call timestamp: {datetime.now().isoformat()}")
             
-            # Log successful response
-            logger.info("Gemini API call successful")
+            try:
+                # Use a timeout for the API call
+                import signal
+                
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Gemini API call timed out")
+                
+                # Set up timeout (Windows doesn't support signal, so we'll use a different approach)
+                import threading
+                import time as time_module
+                
+                result = [None]
+                exception = [None]
+                
+                def api_call():
+                    try:
+                        result[0] = self.model.generate_content(prompt)
+                    except Exception as e:
+                        exception[0] = e
+                
+                thread = threading.Thread(target=api_call)
+                thread.daemon = True
+                thread.start()
+                thread.join(timeout=10)  # 10 second timeout
+                
+                if thread.is_alive():
+                    # Thread is still running, API call timed out
+                    api_duration = (time.time() - api_start) * 1000
+                    logger.error(f"[AI_SERVICE] Gemini API call TIMED OUT after {api_duration:.2f}ms")
+                    raise TimeoutError("Gemini API call timed out after 10 seconds")
+                
+                if exception[0]:
+                    raise exception[0]
+                
+                response = result[0]
+                if response is None:
+                    raise Exception("Gemini API returned None response")
+                
+                api_duration = (time.time() - api_start) * 1000
+                logger.info(f"[AI_SERVICE] Step 3 - Gemini API response received: {api_duration:.2f}ms")
+                
+            except TimeoutError as e:
+                api_duration = (time.time() - api_start) * 1000
+                logger.error(f"[AI_SERVICE] TIMEOUT ERROR after {api_duration:.2f}ms: {e}")
+                raise e
+            except Exception as e:
+                api_duration = (time.time() - api_start) * 1000
+                logger.error(f"[AI_SERVICE] API ERROR after {api_duration:.2f}ms: {e}")
+                raise e
             
-            # Try to parse JSON response
+            # Step 4: Parse response
+            parse_start = time.time()
             try:
                 response_text = response.text.strip()
+                logger.info(f"[AI_SERVICE] Raw response length: {len(response_text)} characters")
                 
                 # Handle JSON wrapped in markdown code blocks
                 if response_text.startswith('```json') and response_text.endswith('```'):
                     response_text = response_text[7:-3].strip()
+                    logger.info("[AI_SERVICE] Removed JSON markdown wrapper")
                 elif response_text.startswith('```') and response_text.endswith('```'):
                     response_text = response_text[3:-3].strip()
+                    logger.info("[AI_SERVICE] Removed generic markdown wrapper")
                 
                 result = json.loads(response_text)
+                parse_duration = (time.time() - parse_start) * 1000
+                logger.info(f"[AI_SERVICE] Step 4 - JSON parsing successful: {parse_duration:.2f}ms")
+                
+                total_duration = (time.time() - ai_start_time) * 1000
+                logger.info(f"[AI_SERVICE] ===== AI ANALYSIS COMPLETED =====")
+                logger.info(f"[AI_SERVICE] Completed at: {datetime.now().isoformat()}")
+                logger.info(f"[AI_SERVICE] TOTAL AI TIME: {total_duration:.2f}ms")
+                logger.info(f"[AI_SERVICE] API call took: {api_duration:.2f}ms ({(api_duration/total_duration)*100:.1f}% of total)")
+                logger.info(f"[AI_SERVICE] ==========================================")
+                
                 return result
-            except json.JSONDecodeError:
-                logger.warning("Gemini response was not JSON, wrapping in basic structure")
+                
+            except json.JSONDecodeError as e:
+                parse_duration = (time.time() - parse_start) * 1000
+                logger.warning(f"[AI_SERVICE] JSON parsing failed after {parse_duration:.2f}ms: {e}")
+                logger.info("[AI_SERVICE] Wrapping non-JSON response in basic structure")
+                
                 # If not JSON, wrap in basic structure
-                return {
+                fallback_result = {
                     "category": "ASK",
                     "intent": "general_inquiry",
                     "confidence": 0.7,
@@ -136,8 +477,14 @@ Respond with JSON for this government services query. Be brief and helpful."""
                     "next_steps": "Please provide more specific information about your requirements."
                 }
                 
+                total_duration = (time.time() - ai_start_time) * 1000
+                logger.info(f"[AI_SERVICE] FALLBACK RESPONSE TIME: {total_duration:.2f}ms")
+                return fallback_result
+                
         except Exception as e:
-            logger.error(f"Error in Gemini analysis: {e}")
+            error_duration = (time.time() - ai_start_time) * 1000
+            logger.error(f"[AI_SERVICE] Error in Gemini analysis after {error_duration:.2f}ms: {e}")
+            logger.error(f"[AI_SERVICE] Exception type: {type(e).__name__}")
             return self._fallback_response(message)
 
     def generate_form_assistance(self, scheme_name: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
