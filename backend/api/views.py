@@ -420,12 +420,12 @@ class AuthenticateView(BaseAPIView):
         
         try:
             result = digilocker_client.request_otp(phone_number)
-            logger.info(f"Authentication initiated for {phone_number}")
+            logger.info("Authentication initiated for a user phone number")
             return Response(result, status=status.HTTP_200_OK)
         except DigiLockerError as e:
             error_message = str(e)
             if "User not found or inactive" in error_message:
-                logger.warning(f"Authentication failed for {phone_number}: User not registered")
+                logger.warning("Authentication failed: User not registered for submitted phone number")
                 return Response(
                     {
                         'error': 'User not found', 
@@ -435,13 +435,13 @@ class AuthenticateView(BaseAPIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
             else:
-                logger.warning(f"Authentication failed for {phone_number}: {error_message}")
+                logger.warning(f"Authentication failed: {error_message}")
                 return Response(
                     {'error': 'Authentication failed', 'message': error_message},
                     status=status.HTTP_400_BAD_REQUEST
                 )
         except (ValidationError, NotFoundError) as e:
-            logger.warning(f"Authentication failed for {phone_number}: {str(e)}")
+            logger.warning(f"Authentication failed: {str(e)}")
             raise
 
 
