@@ -10,10 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { schemesService } from '@/services/schemes';
 import type { Scheme, SchemeFilters, FilterOptions, SchemeStats } from '@/services/schemes';
-import SchemeCard from '@/components/schemes/SchemeCard';
-import SchemeFiltersComponent from '@/components/schemes/SchemeFilters';
-import EligibilityChecker from '@/components/schemes/EligibilityChecker';
-import StatsOverview from '@/components/schemes/StatsOverview';
+import { SchemeCard, SchemeFilters as SchemeFiltersComponent, EligibilityChecker, StatsOverview } from '@/components/schemes';
 
 const Schemes: React.FC = () => {
   const navigate = useNavigate();
