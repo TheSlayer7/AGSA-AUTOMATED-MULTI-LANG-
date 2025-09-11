@@ -330,7 +330,15 @@ Be concise. Extract search intent from user message."""
             logger.info("Gemini model initialized for maximum speed")
             
         except Exception as e:
-            logger.error(f"Failed to initialize Gemini model: {e}")
+            error_message = str(e)
+            if any(phrase in error_message.lower() for phrase in [
+                'api key expired', 'api_key_invalid', 'invalid api key', 
+                'api key not valid', 'unauthorized'
+            ]):
+                logger.error(f"Failed to initialize Gemini model - API KEY ERROR: {error_message}")
+                logger.error("Please update your Gemini API key at https://ai.google.dev/")
+            else:
+                logger.error(f"Failed to initialize Gemini model: {error_message}")
             self.model = None
             
         self._initialized = True
@@ -430,7 +438,19 @@ Be concise. Extract search intent from user message."""
                 raise e
             except Exception as e:
                 api_duration = (time.time() - api_start) * 1000
-                logger.error(f"[AI_SERVICE] API ERROR after {api_duration:.2f}ms: {e}")
+                error_message = str(e)
+                
+                # Enhanced API key error detection
+                if any(phrase in error_message.lower() for phrase in [
+                    'api key expired', 'api_key_invalid', 'invalid api key', 
+                    'api key not valid', 'unauthorized', 'authentication failed'
+                ]):
+                    logger.error(f"[AI_SERVICE] API KEY ERROR after {api_duration:.2f}ms: {error_message}")
+                    logger.error(f"[AI_SERVICE] Please update your Gemini API key at https://ai.google.dev/")
+                else:
+                    logger.error(f"[AI_SERVICE] API ERROR after {api_duration:.2f}ms: {error_message}")
+                
+                logger.error(f"[AI_SERVICE] Exception type: {type(e).__name__}")
                 raise e
             
             # Step 4: Parse response
