@@ -16,6 +16,12 @@ export const API_CONFIG = {
     DOCUMENT_TYPES: '/api/documents/types/',
     DOCUMENT_UPLOAD: '/api/documents/upload/',
     DOCUMENT_DOWNLOAD: (docId: string) => `/api/documents/${docId}/`,
+    CHAT: {
+      SESSIONS: '/api/chat/sessions/',
+      SEND: '/api/chat/send/',
+      ELIGIBILITY: '/api/chat/eligibility/',
+      FORM_ASSISTANCE: '/api/chat/form-assistance/',
+    },
   },
 } as const;
 
