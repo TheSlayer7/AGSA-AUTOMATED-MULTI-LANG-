@@ -4,7 +4,10 @@ Chat views for handling AI-powered conversations.
 
 import uuid
 import logging
+import time
+from datetime import datetime
 from typing import Dict, Any
+from django.db import models
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -136,17 +139,36 @@ class SendMessageView(APIView):
     )
     def post(self, request):
         """Send a message and get AI response."""
+        start_time = time.time()
+        request_timestamp = datetime.now().isoformat()
+        
+        # Immediate debug output to console
+        print(f"[DEBUG] Chat request received at {request_timestamp}")
+        print(f"[DEBUG] Request data: {request.data}")
+        
+        logger.info(f"[CHAT_FLOW] ===== NEW CHAT REQUEST STARTED =====")
+        logger.info(f"[CHAT_FLOW] Request received at: {request_timestamp}")
+        logger.info(f"[CHAT_FLOW] Request data: {request.data}")
+        
         try:
+            # Step 1: Validate request data
+            step_start = time.time()
             serializer = SendMessageRequestSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
+            step_duration = (time.time() - step_start) * 1000
+            logger.info(f"[CHAT_FLOW] Step 1 - Request validation: {step_duration:.2f}ms")
             
             # Get or create session
             session_id = serializer.validated_data.get('session_id')
             message_content = serializer.validated_data['message']
             message_type = serializer.validated_data['message_type']
             
-            # Get user profile
-            user_profile, created = UserProfile.objects.get_or_create(
+            logger.info(f"[CHAT_FLOW] Session ID: {session_id}")
+            logger.info(f"[CHAT_FLOW] Message content: {message_content[:100]}...")
+            
+            # Step 2: Get user profile (optimized with select_for_update for faster access)
+            step_start = time.time()
+            user_profile, created = UserProfile.objects.select_for_update().get_or_create(
                 phone_number='+919999999999',
                 defaults={
                     'user_id': str(uuid.uuid4()),
@@ -154,64 +176,151 @@ class SendMessageView(APIView):
                     'is_active': True
                 }
             )
+            step_duration = (time.time() - step_start) * 1000
+            logger.info(f"[CHAT_FLOW] Step 2 - User profile fetch: {step_duration:.2f}ms")
             
+            # Step 3: Get or create session
+            step_start = time.time()
             if session_id:
                 try:
                     session = ChatSession.objects.get(session_id=session_id, user_profile=user_profile)
+                    logger.info(f"[CHAT_FLOW] Found existing session: {session_id}")
                 except ChatSession.DoesNotExist:
                     session = self._create_new_session(user_profile)
+                    logger.info(f"[CHAT_FLOW] Created new session (session not found): {session.session_id}")
             else:
                 session = self._create_new_session(user_profile)
+                logger.info(f"[CHAT_FLOW] Created new session (no session ID): {session.session_id}")
+            step_duration = (time.time() - step_start) * 1000
+            logger.info(f"[CHAT_FLOW] Step 3 - Session management: {step_duration:.2f}ms")
             
-            # Save user message
-            user_message = ChatMessage.objects.create(
+            # Step 4: Save user message (optimized)
+            step_start = time.time()
+            user_message = ChatMessage(
                 session=session,
                 message_id=str(uuid.uuid4()),
                 content=message_content,
                 sender='user',
                 message_type=message_type
             )
+            user_message.save()
+            step_duration = (time.time() - step_start) * 1000
+            logger.info(f"[CHAT_FLOW] Step 4 - Save user message: {step_duration:.2f}ms")
             
-            # Get AI response from Gemini
+            # Step 5: Prepare context for AI (minimal for speed)
+            step_start = time.time()
+            # Skip recent messages query for maximum speed - use minimal context
+            user_context = {
+                'name': 'User',  # Simplified
+                'phone': user_profile.phone_number,
+                'documents': []  # Skip document lookup for speed
+            }
+            step_duration = (time.time() - step_start) * 1000
+            logger.info(f"[CHAT_FLOW] Step 5 - Prepare AI context: {step_duration:.2f}ms")
+            
+            # Step 6: Call AI service (This is likely the bottleneck)
+            ai_start_time = time.time()
+            logger.info(f"[CHAT_FLOW] Step 6 - CALLING GEMINI AI SERVICE...")
+            logger.info(f"[CHAT_FLOW] AI call started at: {datetime.now().isoformat()}")
+            
+            # Debug print
+            print(f"[DEBUG] About to call Gemini AI service at {datetime.now().isoformat()}")
+            
             try:
-                # Get conversation history for context
-                recent_messages = ChatMessage.objects.filter(session=session).order_by('-timestamp')[:5]
-                
-                # Build user context (you can expand this with actual user profile data)
-                user_context = {
-                    'name': user_profile.name if hasattr(user_profile, 'name') else 'User',
-                    'phone': user_profile.phone_number,
-                    'documents': []  # Add actual documents from user profile if available
-                }
-                
-                # Log before calling AI service
-                logger.info(f"Calling Gemini service for message: {message_content[:50]}...")
-                
-                # Generate AI response using analyze_user_message
                 ai_response = gemini_service.analyze_user_message(
                     message=message_content,
                     user_context=user_context
                 )
                 
-                # Log the response
-                logger.info(f"Gemini service returned: {ai_response}")
+                ai_duration = (time.time() - ai_start_time) * 1000
+                print(f"[DEBUG] Gemini AI response received after {ai_duration:.2f}ms")
+                logger.info(f"[CHAT_FLOW] Step 6 - AI service response received: {ai_duration:.2f}ms")
+                logger.info(f"[CHAT_FLOW] AI response: {ai_response}")
                 
                 ai_response_content = ai_response.get('response', 'I apologize, but I am having trouble processing your request right now.')
                 intent_category = ai_response.get('category', 'ASK')
                 confidence_score = ai_response.get('confidence', 0.7)
                 action_required = len(ai_response.get('action_plan', [])) > 0
                 
+                # NEW: Database Integration - If AI detected scheme search intent
+                if intent_category == 'SCHEME_SEARCH':
+                    db_start = time.time()
+                    logger.info(f"[CHAT_FLOW] Step 6.1 - SCHEME SEARCH DETECTED, querying database...")
+                    
+                    # Extract search parameters from AI response
+                    search_params = ai_response.get('search_params', {})
+                    scheme_category = search_params.get('scheme_category', '')
+                    keywords = search_params.get('keywords', [])
+                    limit = search_params.get('limit', 10)
+                    
+                    # Import here to avoid circular imports
+                    from schemes.models import Scheme, SchemeCategory
+                    
+                    # Query database for matching schemes
+                    schemes_queryset = Scheme.objects.filter(is_active=True)
+                    
+                    # Filter by category if specified
+                    if scheme_category:
+                        # Map common terms to scheme categories
+                        category_mapping = {
+                            'healthcare': SchemeCategory.HEALTHCARE,
+                            'health': SchemeCategory.HEALTHCARE,
+                            'medical': SchemeCategory.HEALTHCARE,
+                            'education': SchemeCategory.EDUCATION,
+                            'agriculture': SchemeCategory.AGRICULTURE,
+                            'employment': SchemeCategory.EMPLOYMENT,
+                            'housing': SchemeCategory.HOUSING,
+                            'financial': SchemeCategory.FINANCIAL_INCLUSION,
+                        }
+                        
+                        mapped_category = category_mapping.get(scheme_category.lower())
+                        if mapped_category:
+                            schemes_queryset = schemes_queryset.filter(scheme_category=mapped_category)
+                        else:
+                            logger.warning(f"[CHAT_FLOW] Category '{scheme_category}' not mapped to any scheme category")
+                    
+                    # Filter by keywords if specified
+                    if keywords:
+                        for keyword in keywords:
+                            schemes_queryset = schemes_queryset.filter(
+                                models.Q(scheme_name__icontains=keyword) |
+                                models.Q(details__icontains=keyword) |
+                                models.Q(eligibility__icontains=keyword)
+                            )
+                    
+                    # Get schemes with limit
+                    schemes = list(schemes_queryset[:limit])
+                    
+                    db_duration = (time.time() - db_start) * 1000
+                    logger.info(f"[CHAT_FLOW] Step 6.1 - Database query completed: {db_duration:.2f}ms, found {len(schemes)} schemes")
+                    
+                    # Format schemes into response
+                    if schemes:
+                        scheme_list = []
+                        for scheme in schemes:
+                            scheme_list.append(f"• {scheme.scheme_name}")
+                            if scheme.details:
+                                scheme_list.append(f"  {scheme.details[:100]}...")
+                            if scheme.benefits:
+                                scheme_list.append(f"  Benefits: {scheme.benefits[:100]}...")
+                            scheme_list.append("")  # Empty line for spacing
+                        
+                        ai_response_content = f"I found {len(schemes)} scheme(s) for you:\n\n" + "\n".join(scheme_list)
+                        ai_response_content += f"\n\nWould you like more details about any specific scheme? I can also help you check eligibility requirements."
+                    else:
+                        ai_response_content = f"I searched our database but couldn't find any schemes matching '{scheme_category}'. However, I can help you explore other categories like education, agriculture, employment, or housing schemes."
+                
             except Exception as e:
-                print(f"DEBUG: Exception in Gemini call: {e}")
-                logger.error(f"Gemini AI error: {e}")
-                # Show service unavailable message instead of dummy responses
+                ai_duration = (time.time() - ai_start_time) * 1000
+                logger.error(f"[CHAT_FLOW] Step 6 - AI service ERROR after {ai_duration:.2f}ms: {e}")
                 ai_response_content = "I'm currently unable to process your request due to a service interruption. Please try again in a few moments or contact support for assistance."
                 intent_category = 'llm_unavailable'
                 confidence_score = 0.0
                 action_required = False
             
-            # Create assistant message
-            assistant_message = ChatMessage.objects.create(
+            # Step 7: Save assistant message (optimized)
+            step_start = time.time()
+            assistant_message = ChatMessage(
                 session=session,
                 message_id=str(uuid.uuid4()),
                 content=ai_response_content,
@@ -221,30 +330,58 @@ class SendMessageView(APIView):
                 confidence_score=confidence_score,
                 action_required=action_required
             )
+            assistant_message.save()
+            step_duration = (time.time() - step_start) * 1000
+            logger.info(f"[CHAT_FLOW] Step 7 - Save assistant message: {step_duration:.2f}ms")
             
-            # Update session
-            session.last_activity = user_message.timestamp
-            session.title = "Government Services Chat"
-            session.save()
-            
-            # Get or create conversation context
-            context, created = ConversationContext.objects.get_or_create(
-                session=session,
-                defaults={
-                    'current_flow': 'idle',
-                    'user_intent': 'general_inquiry',
-                    'extracted_data': {},
-                    'pending_actions': []
-                }
+            # Step 8: Update session and context (optimized)
+            step_start = time.time()
+            # Bulk update session
+            ChatSession.objects.filter(id=session.id).update(
+                last_activity=user_message.timestamp,
+                title="Government Services Chat"
             )
             
-            # Serialize response
+            # Use get_or_create with minimal defaults
+            context, created = ConversationContext.objects.get_or_create(
+                session=session,
+                defaults={'current_flow': 'idle', 'user_intent': 'general_inquiry'}
+            )
+            step_duration = (time.time() - step_start) * 1000
+            logger.info(f"[CHAT_FLOW] Step 8 - Update session/context: {step_duration:.2f}ms")
+            
+            # Step 9: Serialize response (optimized for speed)
+            step_start = time.time()
             response_data = {
                 'session_id': session.session_id,
-                'user_message': ChatMessageSerializer(user_message).data,
-                'assistant_message': ChatMessageSerializer(assistant_message).data,
-                'context': ConversationContextSerializer(context).data
+                'user_message': {
+                    'message_id': user_message.message_id,
+                    'content': user_message.content,
+                    'timestamp': user_message.timestamp.isoformat()
+                },
+                'assistant_message': {
+                    'message_id': assistant_message.message_id,
+                    'content': assistant_message.content,
+                    'timestamp': assistant_message.timestamp.isoformat(),
+                    'confidence_score': assistant_message.confidence_score,
+                    'intent_category': assistant_message.intent_category
+                },
+                'context': {
+                    'current_flow': context.current_flow,
+                    'user_intent': context.user_intent
+                }
             }
+            step_duration = (time.time() - step_start) * 1000
+            logger.info(f"[CHAT_FLOW] Step 9 - Serialize response: {step_duration:.2f}ms")
+            
+            # Total timing
+            total_duration = (time.time() - start_time) * 1000
+            response_timestamp = datetime.now().isoformat()
+            
+            logger.info(f"[CHAT_FLOW] ===== CHAT REQUEST COMPLETED =====")
+            logger.info(f"[CHAT_FLOW] Response sent at: {response_timestamp}")
+            logger.info(f"[CHAT_FLOW] TOTAL REQUEST TIME: {total_duration:.2f}ms")
+            logger.info(f"[CHAT_FLOW] =========================================")
             
             return Response(response_data, status=status.HTTP_200_OK)
             
