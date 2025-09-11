@@ -25,3 +25,4 @@ dist-ssr
 backend/updated_data.csv
 *.csv
 backend/documents
+backend/.env
