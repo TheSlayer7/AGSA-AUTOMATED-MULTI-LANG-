@@ -8,6 +8,11 @@ authentication, profile management, and document operations.
 import logging
 import random
 import string
+from utils.safe_logging import safe_log_user_action, mask_phone_number
+from utils.secure_error_handler import (
+    SecureErrorHandler, handle_database_error, 
+    handle_external_service_error, handle_file_upload_error
+)
 import uuid
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -179,7 +184,7 @@ class SignUpView(BaseAPIView):
         registration.request_id = request_id
         registration.save()
         
-        logger.info(f"Sign-up OTP generated for {phone_number}")
+        logger.info(safe_log_user_action("Sign-up OTP generated", phone=phone_number))
         
         # Mock SMS sending
         print(f"📱 Mock SMS: Your AGSA registration OTP is {otp}")
@@ -289,7 +294,7 @@ class VerifySignUpOTPView(BaseAPIView):
             logger.error(f"Failed to create session: {e}")
             session_token = "temp_session_" + str(uuid.uuid4())[:8]
         
-        logger.info(f"User registration completed for {registration.phone_number}")
+        logger.info(safe_log_user_action("User registration completed", phone=registration.phone_number))
         
         return Response({
             'success': True,
@@ -377,7 +382,7 @@ class CompleteKYCView(BaseAPIView):
             aadhaar_number=registration.aadhaar_number
         )
         
-        logger.info(f"KYC completed for {phone_number}")
+        logger.info(safe_log_user_action("KYC completed", phone=phone_number))
         
         profile_serializer = UserProfileSerializer(user_profile)
         
@@ -437,12 +442,19 @@ class AuthenticateView(BaseAPIView):
             else:
                 logger.warning(f"Authentication failed: {error_message}")
                 return Response(
-                    {'error': 'Authentication failed', 'message': error_message},
+                    {'error': 'Authentication failed', 'message': 'Invalid credentials provided.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
         except (ValidationError, NotFoundError) as e:
-            logger.warning(f"Authentication failed: {str(e)}")
-            raise
+            return SecureErrorHandler.handle_exception(
+                e, 'authentication', 
+                context={'operation': 'login_otp', 'phone': mask_phone_number(phone_number)}
+            )[0]
+        except Exception as e:
+            return SecureErrorHandler.handle_exception(
+                e, 'server_error',
+                context={'operation': 'login_otp'}
+            )[0]
 
 
 class VerifyOTPView(BaseAPIView):
@@ -737,12 +749,7 @@ class DocumentTypesView(BaseAPIView):
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
-            logger.error(f"Error getting document types: {str(e)}")
-            return Response({
-                'success': False,
-                'error': 'Failed to retrieve document types',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return handle_database_error(e, context={'operation': 'get_document_types'})
 
 
 class DocumentUploadView(BaseAPIView):
@@ -821,16 +828,9 @@ class DocumentUploadView(BaseAPIView):
             }, status=status.HTTP_201_CREATED)
             
         except ValidationError as e:
-            return Response({
-                'success': False,
-                'error': 'Validation error',
-                'message': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return SecureErrorHandler.handle_validation_error(
+                e, context={'operation': 'document_upload'}
+            )
             
         except Exception as e:
-            logger.error(f"Error uploading document: {str(e)}")
-            return Response({
-                'success': False,
-                'error': 'Upload failed',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return handle_file_upload_error(e, 'document')

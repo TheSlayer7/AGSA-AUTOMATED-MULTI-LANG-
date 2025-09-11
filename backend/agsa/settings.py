@@ -203,10 +203,24 @@ LOGGING = {
             'style': '{',
         },
     },
+    'filters': {
+        'sensitive_data_filter': {
+            '()': 'utils.logging_filters.SensitiveDataFilter',
+        },
+        'production_safety_filter': {
+            '()': 'utils.logging_filters.ProductionSafetyFilter',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'filters': ['sensitive_data_filter'],
+        },
+        'production_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+            'filters': ['sensitive_data_filter', 'production_safety_filter'],
         },
     },
     'loggers': {
@@ -220,10 +234,25 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'django.request': {
+        'api.views': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Reduced to avoid sensitive request data
+            'propagate': True,
+        },
     },
 }
+
+# Security Settings for Production
+SECURE_LOGGING = True
+
+# Sensitive data fields that should never be logged
+SENSITIVE_FIELDS = [
+    'password', 'token', 'secret', 'key', 'api_key',
+    'aadhaar_number', 'phone_number', 'email', 'address',
+    'name', 'dob', 'session_token', 'otp_code'
+]
