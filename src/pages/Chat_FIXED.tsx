@@ -16,84 +16,12 @@ interface Message {
   isAIGenerated?: boolean;
 }
 
-// Move MessageBubble outside to prevent recreation on every render
-const MessageBubble = memo(({ message }: { message: Message }) => {
-  console.log('💭 MessageBubble rendering for message:', message.id, 'sender:', message.sender);
-  const isUser = message.sender === "user";
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={`flex ${isUser ? "justify-end" : "justify-start"} mb-4`}
-    >
-      <div className={`flex items-start space-x-2 max-w-[80%] ${isUser ? "flex-row-reverse space-x-reverse" : ""}`}>
-        {/* Avatar */}
-        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          isUser ? "bg-secondary" : "bg-primary"
-        }`}>
-          {isUser ? (
-            <User className="w-4 h-4 text-white" />
-          ) : (
-            <Bot className="w-4 h-4 text-white" />
-          )}
-        </div>
-
-        {/* Message Content */}
-        <div className={`px-4 py-3 rounded-2xl ${
-          isUser 
-            ? "bg-primary text-white rounded-br-md" 
-            : "bg-white border border-gray-200 rounded-bl-md shadow-sm"
-        }`}>
-          <div className={`text-sm ${isUser ? "text-white" : "text-gray-800"}`}>
-            {message.content.split('\n').map((line, index) => {
-              // Handle bullet points
-              if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
-                return (
-                  <div key={index} className={`flex items-start ${index > 0 ? "mt-1" : ""}`}>
-                    <span className="mr-2">•</span>
-                    <span>{line.replace(/^[•\-]\s*/, '').trim()}</span>
-                  </div>
-                );
-              }
-              return <div key={index} className={index > 0 ? "mt-1" : ""}>{line}</div>;
-            })}
-          </div>
-          
-          <div className={`text-xs mt-2 flex items-center justify-between ${
-            isUser ? "text-white/70" : "text-gray-500"
-          }`}>
-            <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-            {!isUser && message.isAIGenerated && (
-              <div className="flex items-center ml-2">
-                <Sparkles className="w-3 h-3 mr-1" />
-                <span className="text-xs">AI</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-});
-
 const Chat = () => {
-  console.log('🔄 Chat component rendering');
-  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [isInitializing, setIsInitializing] = useState(true);
-  
-  console.log('📊 Chat state:', { 
-    inputValue, 
-    isTyping, 
-    isInitializing, 
-    currentSessionId, 
-    messagesCount: messages.length 
-  });
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -104,13 +32,11 @@ const Chat = () => {
   };
 
   useEffect(() => {
-    console.log('📜 Scroll effect triggered - messages changed:', messages.length);
     scrollToBottom();
   }, [messages]);
 
   // Initialize chat session on component mount
   useEffect(() => {
-    console.log('🚀 Initialize chat useEffect triggered');
     initializeChat();
   }, []);
 
@@ -162,7 +88,6 @@ const Chat = () => {
   };
 
   const addMessage = useCallback((content: string, sender: "user" | "assistant" | "system", type: "text" | "status" | "summary" | "system" = "text", isAIGenerated: boolean = false) => {
-    console.log('💬 addMessage called:', { content: content.substring(0, 50) + '...', sender, type, isAIGenerated });
     const newMessage: Message = {
       id: `${Date.now()}-${Math.random()}`,
       content,
@@ -171,34 +96,19 @@ const Chat = () => {
       type,
       isAIGenerated
     };
-    console.log('📝 New message created:', newMessage.id);
-    setMessages(prev => {
-      console.log('📋 Previous messages count:', prev.length);
-      const newMessages = [...prev, newMessage];
-      console.log('📋 New messages count:', newMessages.length);
-      return newMessages;
-    });
-    console.log('✅ setMessages called');
+    setMessages(prev => [...prev, newMessage]);
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    console.log('📤 handleSubmit triggered');
     e.preventDefault();
-    if (!inputValue.trim() || isTyping) {
-      console.log('❌ Submit blocked:', { inputValue: inputValue.trim(), isTyping });
-      return;
-    }
+    if (!inputValue.trim() || isTyping) return;
 
     const userMessage = inputValue;
-    console.log('💬 User message:', userMessage);
     setInputValue("");
-    console.log('🧹 Input cleared');
     
     // Add user message immediately
     addMessage(userMessage, "user");
-    console.log('✅ User message added to chat');
     setIsTyping(true);
-    console.log('⏳ Set typing to true');
     
     try {
       // Send message to AI service
@@ -253,16 +163,91 @@ const Chat = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [currentSessionId, addMessage, toast, inputValue, isTyping]);
+  }, [currentSessionId, addMessage, toast]);
+
+  const MessageBubble = memo(({ message }: { message: Message }) => {
+    const isUser = message.sender === "user";
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={`flex ${isUser ? "justify-end" : "justify-start"} mb-4`}
+      >
+        <div className={`flex items-start space-x-2 max-w-[80%] ${isUser ? "flex-row-reverse space-x-reverse" : ""}`}>
+          {/* Avatar */}
+          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+            isUser ? "bg-secondary" : "bg-primary"
+          }`}>
+            {isUser ? (
+              <User className="w-4 h-4 text-white" />
+            ) : message.isAIGenerated ? (
+              <Sparkles className="w-4 h-4 text-white" />
+            ) : (
+              <Bot className="w-4 h-4 text-white" />
+            )}
+          </div>
+
+          {/* Message Content */}
+          <div className={`rounded-2xl px-4 py-3 ${
+            isUser
+              ? "bg-secondary text-white"
+              : message.type === "status"
+              ? "bg-amber-50 border border-amber-200 text-amber-800"
+              : message.type === "summary"
+              ? "bg-primary/5 border border-primary/20 text-gray-900"
+              : "bg-gray-100 text-gray-900"
+          }`}>
+            {message.type === "status" && (
+              <div className="flex items-center mb-2">
+                <Clock className="w-4 h-4 mr-2" />
+                <span className="text-sm font-medium">Processing...</span>
+              </div>
+            )}
+            
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              {message.content.split('\n').map((line, index) => {
+                if (line.startsWith('**') && line.endsWith('**')) {
+                  return (
+                    <div key={index} className="font-semibold text-gray-900 mb-1">
+                      {line.slice(2, -2)}
+                    </div>
+                  );
+                }
+                if (line.includes('•') || line.includes('-')) {
+                  return (
+                    <div key={index} className="flex items-start mb-1">
+                      <span className="mr-2">•</span>
+                      <span>{line.replace(/^[•\-]\s*/, '').trim()}</span>
+                    </div>
+                  );
+                }
+                return <div key={index} className={index > 0 ? "mt-1" : ""}>{line}</div>;
+              })}
+            </div>
+            
+            <div className={`text-xs mt-2 flex items-center justify-between ${
+              isUser ? "text-white/70" : "text-gray-500"
+            }`}>
+              <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              {!isUser && message.isAIGenerated && (
+                <div className="flex items-center ml-2">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  <span className="text-xs">AI</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  });
 
   // Optimized input change handler
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('⌨️ Input change triggered:', e.target.value);
     setInputValue(e.target.value);
-    console.log('✅ setInputValue called with:', e.target.value);
   }, []);
-
-  console.log('🎨 About to render Chat component UI');
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
