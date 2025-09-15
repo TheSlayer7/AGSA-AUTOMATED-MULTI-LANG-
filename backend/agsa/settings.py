@@ -187,7 +187,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 # AI Configuration
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY','')
 
 # Logging Configuration
 LOGGING = {
