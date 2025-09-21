@@ -2,6 +2,14 @@
 	<h1>AGSA – Automated Government Service Agent</h1>
 	<p><strong>Your agentic AI interface for discovering schemes, verifying documents, and guiding citizens th## 6. AI-Powered Chat System
 
+Contributors & Project Origin
+
+This project was developed by TheSlayer7 (Ayush)
+ and Frank
+ as part of the India AI Impact – Generative AI Hackathon.
+
+Both contributors worked on their own versions of AGSA; this repository represents our collaborative implementation, while https://github.com/frankmathewsajan Frank maintains a similar but independent version with different features and enhancements.
+
 ### Google Gemini Integration
 The chat system uses Google Gemini Pro for intelligent responses:
 
