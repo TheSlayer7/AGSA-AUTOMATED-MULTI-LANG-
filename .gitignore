@@ -26,3 +26,65 @@ backend/updated_data.csv
 *.csv
 backend/documents
 backend/.env
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django environment/settings/database
+.env
+*.env
+.env.*
+db.sqlite3
+*.sqlite3
+.pyenv
+.python-version
+.venv/
+venv/
+env/
+
+# Django cache/static/media/uploads
+/media/
+uploads/
+assets/
+staticfiles/
+
+# Django Migrations
+**/migrations/
+**/migrations/*.pyc
+**/migrations/*.py
+
+# Node/React
+node_modules/
+npm-debug.log*
+yarn-error.log*
+bun.lockb
+dist/
+build/
+
+# System
+.DS_Store
+Thumbs.db
+*.log
+
+# Editor/IDE
+.vscode/
+.idea/
+*.iml
+
+# Test output, coverage, and misc
+*.swp
+*.swo
+coverage/
+.coverage
+
+# Firebase & credentials
+firebase.json
+.firebaserc
+*.cache
+
+# Vite/React/Frontend config
+*.tsbuildinfo
+
+# Misc generated/temporary files
+*.lock
