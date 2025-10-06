@@ -101,9 +101,9 @@ google-api-core==2.25.1 \
     #   google-ai-generativelanguage
     #   google-api-python-client
     #   google-generativeai
-google-api-python-client==2.181.0 \
-    --hash=sha256:348730e3ece46434a01415f3d516d7a0885c8e624ce799f50f2d4d86c2475fb7 \
-    --hash=sha256:d7060962a274a16a2c6f8fb4b1569324dbff11bfbca8eb050b88ead1dd32261c
+google-api-python-client==2.184.0 \
+    --hash=sha256:15a18d02f42de99416921c77be235d12ead474e474a1abc348b01a2b92633fa4 \
+    --hash=sha256:ef2a3330ad058cdfc8a558d199c051c3356f6ed012436c3ad3d08b67891b039f
     # via google-generativeai
 google-auth==2.40.3 \
     --hash=sha256:1370d4593e86213563547f97a92752fc658456fe4514c809544f330fed45a7ca \
