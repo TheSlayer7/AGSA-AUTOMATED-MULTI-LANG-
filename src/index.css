@@ -1,0 +1,208 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* AGSA Design System - Premium Government Services UI
+All colors MUST be HSL. Mobile-first, accessible, calming aesthetic.
+*/
+
+@layer base {
+  :root {
+    /* Core Background & Text */
+    --background: 210 17% 98%; /* Cool White #f9fafb */
+    --foreground: 215 25% 27%; /* Dark Slate for readability */
+
+    /* Card & Surface Colors */
+    --card: 0 0% 100%; /* Pure white for cards */
+    --card-foreground: 215 25% 27%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 27%;
+
+    /* Primary: Emerald - Trust & Progress */
+    --primary: 145 63% 49%; /* #2ecc71 Emerald */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 145 63% 42%; /* Darker emerald for hover */
+    --primary-light: 145 63% 85%; /* Light emerald for backgrounds */
+
+    /* Secondary: Indigo Blue - Reliability */
+    --secondary: 217 91% 60%; /* #3b82f6 Indigo Blue */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 217 91% 53%; /* Darker indigo for hover */
+    --secondary-light: 217 91% 90%; /* Light indigo for backgrounds */
+
+    /* Neutral: Slate Gray */
+    --muted: 215 16% 47%; /* #64748b Slate Gray */
+    --muted-foreground: 215 16% 47%;
+    --muted-light: 210 20% 96%; /* Very light gray */
+
+    /* Accent: Warm Amber - Highlights & CTA */
+    --accent: 43 96% 56%; /* #fbbf24 Warm Amber */
+    --accent-foreground: 215 25% 27%;
+    --accent-hover: 43 96% 48%; /* Darker amber for hover */
+    --accent-light: 43 96% 90%; /* Light amber for backgrounds */
+
+    /* Utility Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 20% 91%; /* Light gray border */
+    --input: 215 20% 91%;
+    --ring: 145 63% 49%; /* Emerald ring for focus */
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(145 63% 49%) 0%, hsl(217 91% 60%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 17% 98%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(43 96% 48%) 100%);
+
+    /* Shadows for Premium Feel */
+    --shadow-soft: 0 4px 20px -4px hsl(215 25% 27% / 0.08);
+    --shadow-medium: 0 8px 30px -6px hsl(215 25% 27% / 0.12);
+    --shadow-large: 0 20px 40px -12px hsl(215 25% 27% / 0.16);
+
+    /* Animation Values */
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 1rem; /* Increased for premium rounded feel */
+
+    /* Sidebar (keeping for compatibility) */
+    --sidebar-background: 210 17% 98%;
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-primary: 145 63% 49%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 96%;
+    --sidebar-accent-foreground: 215 25% 27%;
+    --sidebar-border: 215 20% 91%;
+    --sidebar-ring: 145 63% 49%;
+  }
+
+  /* Light theme only - removing dark mode for this project */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Typography */
+  .font-inter {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  .font-serif {
+    font-family: 'DM Serif Display', Georgia, serif;
+  }
+
+  /* Premium animations and microinteractions */
+  .hover-lift {
+    @apply transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/20;
+  }
+
+  .pulse-subtle {
+    animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .slide-up {
+    animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .fade-in {
+    animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@layer components {
+  /* Premium button styles */
+  .btn-hero {
+    @apply inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white rounded-2xl shadow-lg transition-all duration-300;
+    background: var(--gradient-hero);
+    box-shadow: var(--shadow-medium);
+  }
+
+  .btn-hero:hover {
+    @apply translate-y-[-2px] shadow-xl;
+    box-shadow: var(--shadow-large);
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center px-6 py-3 font-semibold text-accent-foreground rounded-xl transition-all duration-300;
+    background: var(--gradient-accent);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .btn-accent:hover {
+    @apply translate-y-[-1px] shadow-md;
+  }
+
+  /* Premium card styles */
+  .card-premium {
+    @apply bg-card rounded-2xl p-6 shadow-soft border border-border/50 transition-all duration-300 hover:shadow-medium hover:translate-y-[-2px];
+  }
+
+  .card-feature {
+    @apply bg-gradient-to-br from-card to-muted-light rounded-2xl p-8 shadow-soft border border-border/30 transition-all duration-300 hover:shadow-medium hover:translate-y-[-2px];
+  }
+}
+
+/* Keyframe animations */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Smooth scrolling for navigation */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px; /* Account for fixed navbar */
+}
+
+/* Additional utility classes */
+.premium-button {
+  @apply bg-primary hover:bg-primary-hover text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:translate-y-[-1px] hover:shadow-lg;
+}
+
+.premium-card {
+  @apply bg-card rounded-2xl shadow-soft border border-border/50 transition-all duration-300 hover:shadow-medium;
+}
+
+.floating-input {
+  @apply rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-0 transition-all duration-300;
+}
+
+.gradient-subtle {
+  background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted-light)) 100%);
+}
