@@ -8,4 +8,4 @@ updates:
   - package-ecosystem: "pip"       # Python dependencies
     directory: "/backend"          # Path to your requirements.txt / pyproject.toml
     schedule:
-      interval: "weekly"           # Check for updates every week
+      interval: "yearly"           # Check for updates every year
