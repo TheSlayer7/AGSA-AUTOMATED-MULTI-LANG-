@@ -76,9 +76,9 @@ django-cors-headers==4.8.0 \
     --hash=sha256:0a12a2efcd59a3cea741e44db8ab589e929949de5bc4cdf35a29c6ae77297686 \
     --hash=sha256:3b883f4c6d07848673218456a5e070d8ab51f97341c1f27d0242ca167e7272ab
     # via agsa-gov-agent-ai
-django-filter==25.1 \
-    --hash=sha256:1ec9eef48fa8da1c0ac9b411744b16c3f4c31176c867886e4c48da369c407153 \
-    --hash=sha256:4fa48677cf5857b9b1347fed23e355ea792464e0fe07244d1fdfb8a806215b80
+django-filter==25.2 \
+    --hash=sha256:760e984a931f4468d096f5541787efb8998c61217b73006163bf2f9523fe8f23 \
+    --hash=sha256:9c0f8609057309bba611062fe1b720b4a873652541192d232dd28970383633e3
     # via agsa-gov-agent-ai
 djangorestframework==3.16.1 \
     --hash=sha256:166809528b1aced0a17dc66c24492af18049f2c9420dbd0be29422029cfc3ff7 \
